@@ -1,0 +1,15 @@
+[submodule "src/modules/quewrapper"]
+	path = src/modules/quewrapper
+	url = git@gitlab.com:c3po-modules/quewrapper.git
+[submodule "src/modules/discordmsg"]
+	path = src/modules/discordmsg
+	url = git@gitlab.com:c3po-modules/discordmsg.git
+[submodule "src/modules/dbwrapper"]
+	path = src/modules/dbwrapper
+	url = git@gitlab.com:c3po-modules/dbwrapper.git
+[submodule "src/modules/discordhelper"]
+	path = src/modules/discordhelper
+	url = git@gitlab.com:c3po-modules/discordhelper.git
+[submodule "src/modules/swgohhelper"]
+	path = src/modules/swgohhelper
+	url = git@gitlab.com:c3po-modules/swgohhelper.git
