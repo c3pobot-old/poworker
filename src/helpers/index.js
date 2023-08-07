@@ -1,25 +1,35 @@
 'use strict'
-const discordhelper = require('discordhelper')
-const swgohhelper = require('swgohhelper')
-const Cmds = {...discordhelper,...swgohhelper}
+const Cmds = {}
 Cmds.CheckRules = require('./checkRules')
-Cmds.GetDiscordId = require('./getDiscordId')
+
+Cmds.DeepCopy = require('./deepCopy')
 Cmds.DiscordMsg = require('./discordMsg')
+
+Cmds.GetDiscordId = require('./getDiscordId')
+Cmds.GetPayouts = require('./getPayouts')
+Cmds.GetPOHour = require('./getPOHour')
+Cmds.GetRanks = require('./getRanks')
 Cmds.GetShard = require('./getShard')
+Cmds.GetShardName = require('./getShardName')
+
 Cmds.NotifyPO = require('./notifyPO')
 Cmds.NotifyRankChange = require('./notifyRankChange')
 Cmds.NotifyStart = require('./notifyStart')
 Cmds.NotifyPO = require('./notifyPO')
 Cmds.NotifyRankChange = require('./notifyRankChange')
 Cmds.NotifyStart = require('./notifyStart')
+
 Cmds.PayoutRotations = require('./payoutRotations')
+
 Cmds.RankWatchNotify = require('./rankWatchNotify')
+
 Cmds.SendAdminMsg = require('./sendAdminMsg')
 Cmds.SendEnemyWatchMsg = require('./sendEnemyWatchMsg')
 Cmds.SendPayoutMsg = require('./sendPayoutMsg')
 Cmds.SendRankChange = require('./sendRankChange')
 Cmds.SendStartMsg = require('./sendStartMsg')
 Cmds.SendWatchMsg = require('./sendWatchMsg')
-Cmds.UpdatePayHistory = require('./updatePayHistory')
-Cmds.UpdateRankHistory = require('./updateRankHistory')
+
+Cmds.TimeTillPayout = require('./timeTillPayout')
+
 module.exports = Cmds

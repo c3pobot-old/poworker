@@ -1,21 +1,26 @@
 'use strict'
-const CheckEarlyHit = require('./checkEarlyHit')
-const CheckEnemyHit = require('./checkEnemyHit')
-const CheckEnemySkip = require('./checkEnemySkip')
-const GetDiscordId = require('./getDiscordId')
+const log = require('logger')
+const mongo = require('mongoapiclient')
+const checkEarlyHit = require('./checkEarlyHit')
+const checkEnemyHit = require('./checkEnemyHit')
+const checkEnemySkip = require('./checkEnemySkip')
+const getDiscordId = require('./getDiscordId')
+const sorter = require('json-array-sorter')
+const discordMsg = require('./discordMsg')
+const deepCopy = require('./deepCopy')
 module.exports = async(shardId, obj = [], ranks = [])=>{
   try{
     let rules
-    const shard = (await mongo.find('payoutServers', {_id: shardId}, {rules: 1, sId: 1}))[0]
+    let shard = (await mongo.find('payoutServers', {_id: shardId}, {rules: 1, sId: 1}))[0]
     if(shard && shard.rules) rules = shard.rules
     if(rules && obj.length > 0){
-      const tempEmbeds = {}
-      ranks = await sorter([{column: 'oldRank', order: 'ascending'}], ranks.filter(x=> rules.enemy.some(r=>r == x.emoji)))
+      let tempEmbeds = {}
+      ranks = sorter([{column: 'oldRank', order: 'ascending'}], ranks.filter(x=> rules.enemy.some(r=>r == x.emoji)))
       for(let i in obj){
         if((!obj[i].emoji || rules.enemy.filter(x=>x == obj[i].emoji).length == 0) && obj[i].swap){
-          const discordId = await GetDiscordId(obj[i])
+          let discordId = await getDiscordId(obj[i])
           if(obj[i].swap && obj[i].swap.emoji && rules.enemy.filter(x=>x == obj[i].swap.emoji).length > 0){
-            const enemyHitMsg = await CheckEnemyHit(rules.enemyHits, obj[i])
+            let enemyHitMsg = await checkEnemyHit(rules.enemyHits, obj[i])
             if(enemyHitMsg && enemyHitMsg.color && rules.enemyHits && rules.enemyHits.chId){
               if(!tempEmbeds[rules.enemyHits.chId]) tempEmbeds[rules.enemyHits.chId] = {chId: rules.enemyHits.chId, msgs: []}
               if(tempEmbeds[rules.enemyHits.chId]){
@@ -30,8 +35,7 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
                       if(!tempEmbeds[rules.enemyHits.chId].content) tempEmbeds[rules.enemyHits.chId].content = ''
                       tempEmbeds[rules.enemyHits.chId].content += '<@'+discordId+'> '
                     }else{
-                      //MSG.SendDM(discordId, {embeds:[enemyHitMsg]})
-                      HP.DiscordMsg({shardId: 0}, {method: 'sendDM', dId: discordId, msg: {embeds:[enemyHitMsg]}})
+                      discordMsg({sId: shard.sId}, {method: 'sendDM', dId: discordId, msg: {embeds:[enemyHitMsg]}})
                     }
                   }
                 }
@@ -42,7 +46,7 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
             tempHits = tempHits.filter(x=>((rules['top-rank'] ? rules['top-rank']:2) + obj[i].rank) >= x.oldRank)
             if(rules['bottom-rank'] && (obj[i].oldRank -  rules['bottom-rank']) > 0) tempHits = tempHits.filter(x=>(obj[i].oldRank -  rules['bottom-rank']) > x.oldRank)
             let earlyHit = 0
-            const earlyHitMsg = await CheckEarlyHit(rules.earlyHits, obj[i], (rules['top-rank'] || 2), tempHits, rules.enemySkips)
+            let earlyHitMsg = await checkEarlyHit(rules.earlyHits, obj[i], (rules['top-rank'] || 2), tempHits, rules.enemySkips)
             if(earlyHitMsg && earlyHitMsg.color && rules.earlyHits && rules.earlyHits.chId){
               earlyHit++
               if(!tempEmbeds[rules.earlyHits.chId]) tempEmbeds[rules.earlyHits.chId] = {chId: rules.earlyHits.chId, msgs: []}
@@ -58,15 +62,14 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
                       if(!tempEmbeds[rules.earlyHits.chId].content) tempEmbeds[rules.earlyHits.chId].content = ''
                       tempEmbeds[rules.earlyHits.chId].content += '<@'+discordId+'> '
                     }else{
-                      //MSG.SendDM(discordId, {embeds:[earlyHitMsg]})
-                      HP.DiscordMsg({shardId: 0}, {method: 'sendDM', dId: discordId, msg: {embeds:[earlyHitMsg]}})
+                      discordMsg({sId: shard.sId}, {method: 'sendDM', dId: discordId, msg: {embeds:[earlyHitMsg]}})
                     }
                   }
                 }
               }
             }
             if(!earlyHit){
-              const enemySkipMsg = await CheckEnemySkip(rules.enemySkips, obj[i], tempHits, (rules['top-rank'] || 2))
+              let enemySkipMsg = await checkEnemySkip(rules.enemySkips, obj[i], tempHits, (rules['top-rank'] || 2))
               if(enemySkipMsg && enemySkipMsg.color && rules.enemySkips && rules.enemySkips.chId){
                 if(!tempEmbeds[rules.enemySkips.chId]) tempEmbeds[rules.enemySkips.chId] = {chId: rules.enemySkips.chId, msgs: []}
                 if(tempEmbeds[rules.enemySkips.chId]){
@@ -81,8 +84,7 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
                         if(!tempEmbeds[rules.enemySkips.chId].content) tempEmbeds[rules.enemySkips.chId].content = ''
                         tempEmbeds[rules.enemySkips.chId].content += '<@'+discordId+'> '
                       }else{
-                        //MSG.SendDM(discordId, {embeds:[earlyHitMsg]})
-                        HP.DiscordMsg({shardId: 0}, {method: 'sendDM', dId: discordId, msg: {embeds:[earlyHitMsg]}})
+                        DiscordMsg({sId: shard.sId}, {method: 'sendDM', dId: discordId, msg: {embeds:[earlyHitMsg]}})
                       }
                     }
                   }
@@ -92,7 +94,7 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
           }
         }
       }
-      const embeds = Object.values(tempEmbeds)
+      let embeds = Object.values(tempEmbeds)
       if(embeds.length > 0){
         for(let i in embeds){
           if(embeds[i].chId && embeds[i].msgs && embeds[i].msgs.length > 0){
@@ -103,8 +105,7 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
               count++;
               if(+m + 1 == embeds[i].msgs.length && count < 10) count = 10
               if(count == 10){
-                //MSG.SendMsg({chId: embeds[i].chId}, JSON.parse(JSON.stringify(msg2send)))
-                HP.DiscordMsg({sId: shard.sId}, {method: 'sendMsg', chId: embeds[i].chId, msg: JSON.parse(JSON.stringify(msg2send))})
+                discordMsg({sId: shard.sId}, { method: 'sendMsg', chId: embeds[i].chId, msg: deepCopy(msg2send) })
                 delete msg2send.content
                 msg2send.embeds = []
                 count = 0
@@ -115,6 +116,6 @@ module.exports = async(shardId, obj = [], ranks = [])=>{
       }
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

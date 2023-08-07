@@ -1,14 +1,16 @@
 'use strict'
+const timeTillPayout = require('./timeTillPayout')
+const mongo = require('mongoapiclient')
 module.exports = async(rule = {}, obj, checkEnemy = 2, ranks = [], enemySkips = {})=>{
   try{
     if(rule.status && obj.swap){
-      const timeTillPO = await HP.TimeTillPayout(obj.swap.poOffSet, obj.type)
-      const pTimeTillPO = await HP.TimeTillPayout(obj.poOffSet, obj.type)
+      let timeTillPO = await timeTillPayout(obj.swap.poOffSet, obj.type)
+      let pTimeTillPO = await timeTillPayout(obj.poOffSet, obj.type)
       if(!rule.closer || (rule.closer && (pTimeTillPO[1] > timeTillPO[1] || obj.swap.poOffSet == obj.poOffSet))){
-        const timeNow = Date.now()
-        const timeDiff = rule.hour * 3600000
+        let timeNow = Date.now()
+        let timeDiff = rule.hour * 3600000
         if((timeTillPO[1] > timeNow) && timeDiff > (timeTillPO[1] - timeNow)){
-          const embedMsg = {
+          let embedMsg = {
             color: 15158332,
             description: '**Early hit** on a friendly within **'+rule.hour+'** hours of payout!\n'+(obj.emoji ? obj.emoji+' ':'')+'**'+obj.name+'** climbed from **'+obj.oldRank+'** to **'+obj.rank+'** and dropped '+(obj.swap.emoji ? obj.swap.emoji+' ':'')+'**'+obj.swap.name+'**\n'
           }
@@ -24,6 +26,6 @@ module.exports = async(rule = {}, obj, checkEnemy = 2, ranks = [], enemySkips = 
       }
     }
   }catch(e){
-    console.error(e)
+    throw(e)
   }
 }

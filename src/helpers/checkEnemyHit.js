@@ -1,4 +1,5 @@
 'use strict'
+const mongo = require('mongoapiclient')
 module.exports = async(rule = {}, obj)=>{
   try{
     if(rule.status){
@@ -6,6 +7,6 @@ module.exports = async(rule = {}, obj)=>{
       return {color: 3066993, description: 'Good Job!\n'+(obj.emoji ? obj.emoji+' ':'')+obj.name+' climbed from **'+obj.oldRank+'** to **'+obj.rank+'** and dropped '+(obj.swap.emoji ? obj.swap.emoji+' ':'')+obj.swap.name}
     }
   }catch(e){
-    console.error(e)
+    throw(e)
   }
 }

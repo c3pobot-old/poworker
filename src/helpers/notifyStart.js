@@ -1,17 +1,27 @@
 'use strict'
-const GetDiscordId = require('./getDiscordId')
-module.exports = async(obj)=>{
+const log = require('logger')
+const discordMsg = require('./discordMsg')
+const getDiscordId = require('./getDiscordId')
+const getShardName = require('./getShardName')
+
+module.exports = async(obj = {})=>{
   try{
-    const discordId = await GetDiscordId(obj)
+    let discordId = await getDiscordId(obj)
     if(discordId){
-      const embedMsg = {
+      let embedMsg = {
         color: 15844367,
-        description: 'Starting notifications of rank drops in **'+HP.GetShardName(obj)+'**.\nCurrent Rank **'+obj.rank+'**'
+        description: 'Starting notifications of rank drops in **'+getShardName(obj)+'**.\nCurrent Rank **'+obj.rank+'**'
       }
       //MSG.SendDM(discordId, {embed: embedMsg})
-      HP.DiscordMsg({shardId: 0}, {method: 'sendDM', dId: discordId, msg: {embeds: [embedMsg]}})
+      let opts = {}
+      if(obj.sId){
+        opts.sId = obj.sId
+      }else{
+        opts.shardId = 0
+      }
+      discordMsg(opts, {method: 'sendDM', dId: discordId, msg: {embeds: [embedMsg]}})
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

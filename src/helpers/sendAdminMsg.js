@@ -1,5 +1,8 @@
 'use strict'
-module.exports = async(data, shard)=>{
+const log = require('logger')
+const discordMsg = require('./discordMsg')
+const timeTillPayout = require('./timeTillPayout')
+module.exports = async(data = {}, shard = {})=>{
   try{
     let content
     if(data.oldName != data.newName){
@@ -7,8 +10,8 @@ module.exports = async(data, shard)=>{
       content += 'Player name change '+(data.emoji ? data.emoji+' ':'')+data.oldName+' -> '+(data.emoji ? data.emoji+' ':'')+data.newName+'\n'
     }
     if(data.oldOffSet != data.newOffSet){
-      const oldTimeTillPO = await HP.TimeTillPayout(data.oldOffSet, shard.type)
-      const newTimeTillPO = await HP.TimeTillPayout(data.newOffSet, shard.type)
+      const oldTimeTillPO = timeTillPayout(data.oldOffSet, shard.type)
+      const newTimeTillPO = timeTillPayout(data.newOffSet, shard.type)
       if(!content) content = ''
       content += 'Player '+(data.emoji ? data.emoji+' ':'')+data.newName
       if(oldTimeTillPO && newTimeTillPO){
@@ -18,19 +21,17 @@ module.exports = async(data, shard)=>{
       }
       content += '\n'
     }
-    //if(content && shard.adminMsg == 'channel' && shard.adminChannel) MSG.SendMsg({chId: shard.adminChannel}, {content: content})
-    //if(content && shard.adminMsg == 'dm' && shard.adminUser) MSG.SendDM(shard.adminUser, {content: content})
-    if(content && shard.adminMsg == 'channel' && shard.adminChannel) HP.DiscordMsg({ sId: shard.sId }, {
+    if(content && shard.adminMsg == 'channel' && shard.adminChannel) discordMsg({ sId: shard.sId }, {
       chId: shard.adminChannel,
       method: 'sendMsg',
       msg: {content: content}
     })
-    if(content && shard.adminMsg == 'dm' && shard.adminUser) HP.DiscordMsg({shardId: 0}, {
+    if(content && shard.adminMsg == 'dm' && shard.adminUser) discordMsg({sId: shard.sId}, {
       dId: shard.adminUser,
       method: 'sendDM',
       msg: {content: content}
     })
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

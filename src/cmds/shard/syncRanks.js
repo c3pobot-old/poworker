@@ -1,18 +1,21 @@
 'use strict'
 const {eachLimit} = require('async')
 const MAX_SYNC = process.env.MAX_SYNC || 50
-const GetRankChange = require('./rankChange')
+const mongo = require('mongoapiclient')
+
+const { GetPOHour, NotifyPO, NotifyRankChange, NotifyStart, RankWatchNotify, SendAdminMsg, SendRankChange } = require('helpers')
+
 const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = null, shard, watchObj, rankObj)=>{
   if(sObj && aObj && shard.type && shard.alt && shard._id){
 
     let adminMsg = ''
-    const pId = sObj.allyCode+'-'+shard._id
+    let pId = sObj.allyCode+'-'+shard._id
     if(!sObj.type) mongo.set('shardPlayers', {_id: pId}, {type:shard.type})
     let dataChange = 0;
     let currentMainRank = (+aObj.arena[shard.type].rank || 0)
     let currentAltRank = (+aObj.arena[shard.alt].rank || 0)
-    const poHourMain = HP.GetPOHour(aObj.poOffSet, shard.type)
-    const poHourAlt = HP.GetPOHour(aObj.poOffSet, shard.alt)
+    let poHourMain = GetPOHour(aObj.poOffSet, shard.type)
+    let poHourAlt = GetPOHour(aObj.poOffSet, shard.alt)
     if(!oldData){
       oldData = {
         allyCode: +aObj.allyCode,
@@ -52,9 +55,9 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
     }
     oldData.arena = aObj.arena
     oldData.rank = currentMainRank
-    const oldRankMain = (+oldData.ranks[shard.type].newRank || 0);
-    const oldRankAlt = (+oldData.ranks[shard.alt].newRank || 0);
-    const mainMsg = {
+    let oldRankMain = (+oldData.ranks[shard.type].newRank || 0);
+    let oldRankAlt = (+oldData.ranks[shard.alt].newRank || 0);
+    let mainMsg = {
       name: aObj.name,
       emoji: sObj.emoji,
       allyCode: +sObj.allyCode,
@@ -72,7 +75,7 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       poNotify: 0,
       notify: 0
     }
-    const altMsg = {
+    let altMsg = {
       name: aObj.name,
       emoji: sObj.emoji,
       allyCode: +sObj.allyCode,
@@ -93,7 +96,7 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
     if(!mainMsg.dId && sObj.discordId) mainMsg.dId = sObj.discordId
     if(!altMsg.dId && sObj.discordId) altMsg.dId = sObj.discordId
     if(aObj.name != oldData.name || aObj.poOffSet != oldData.poOffSet){
-      if(shard.adminMsg) HP.SendAdminMsg({emoji:sObj.emoji, newName: aObj.name, oldName: oldData.name, oldOffSet: oldData.poOffSet, newOffSet: aObj.poOffSet}, shard)
+      if(shard.adminMsg) SendAdminMsg({emoji:sObj.emoji, newName: aObj.name, oldName: oldData.name, oldOffSet: oldData.poOffSet, newOffSet: aObj.poOffSet}, shard)
       oldData.name = aObj.name
       oldData.poOffSet = aObj.poOffSet
       mongo.set('shardPlayers', {_id: pId}, {name: aObj.name, poOffSet: aObj.poOffSet})
@@ -104,22 +107,20 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       dataChange++;
     }
     if(poHourMain == 23 && oldData.notify.poNotify == 0){
-      HP.UpdatePayHistory(pId, shard.type, currentMainRank)
       oldData.notify.poNotify = 1
       dataChange++
       if(sObj.notify.status > 0 && sObj.notify.poMsg > 0){
         mainMsg.poNotify = 1
-        if(sObj.notify.method == 'dm') HP.NotifyPO(mainMsg)
+        if(sObj.notify.method == 'dm') NotifyPO(mainMsg)
       }
       rankObj.po.main.push(mainMsg)
     }
     if (poHourAlt == 23 && oldData.notify.poNotifyAlt == 0) {
-      HP.UpdatePayHistory(pId, shard.alt, currentAltRank)
       oldData.notify.poNotifyAlt = 1
       dataChange++
       if (sObj.notify.status > 0 && sObj.notify.altStatus > 0 && sObj.notify.poMsg > 0){
         altMsg.poNotify = 1
-        if(sObj.notify.method == 'dm') HP.NotifyPO(altMsg)
+        if(sObj.notify.method == 'dm') NotifyPO(altMsg)
       }
       rankObj.po.alt.push(altMsg)
     }
@@ -136,7 +137,7 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       dataChange++;
       if(sObj.notify.status > 0){
         if(sObj.notify.method == 'dm'){
-          HP.NotifyStart(mainMsg)
+          NotifyStart(mainMsg)
         }else{
           rankObj.start.main.push(mainMsg)
         }
@@ -147,7 +148,7 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       dataChange++;
       if (sObj.notify.status > 0 && sObj.notify.altStatus > 0){
         if(sObj.notify.method == 'dm'){
-          HP.NotifyStart(altMsg)
+          NotifyStart(altMsg)
         }else{
           rankObj.start.alt.push(altMsg)
         }
@@ -162,12 +163,11 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       dataChange++
     }
     if (oldRankMain != currentMainRank) {
-      HP.UpdateRankHistory(pId, shard.type, currentMainRank)
       oldData.ranks[shard.type].oldRank = oldRankMain;
       oldData.ranks[shard.type].newRank = currentMainRank;
-      const tempArenaSwap = players.find(x=>x.arena[shard.type].rank == oldRankMain)
+      let tempArenaSwap = players.find(x=>x.arena[shard.type].rank == oldRankMain)
       if(tempArenaSwap){
-        const tempShardSwap = shardPlayers.find(x=>x.playerId == tempArenaSwap.playerId)
+        let tempShardSwap = shardPlayers.find(x=>x.playerId == tempArenaSwap.playerId)
         if(tempShardSwap) mainMsg.swap = {emoji: tempShardSwap.emoji, name: tempArenaSwap.name, poOffSet: tempArenaSwap.poOffSet}
       }
       if(shard.watch && shard.watch[aObj.allyCode]){
@@ -186,29 +186,27 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
       }
       if(watchObj && watchObj.filter(x => x.rank == oldRankMain).length > 0){
         if(watchObj.filter(x => x.rank == oldRankMain && x.method != 'dm').length > 0) mainMsg.rankWatch = watchObj.filter(x => x.rank == oldRankMain && x.method != 'dm')
-        if(watchObj.filter(x => x.rank == oldRankMain && x.method == 'dm').length > 0) HP.RankWatchNotify(watchObj.filter(x => x.rank == oldRankMain && x.method == 'dm'))
+        if(watchObj.filter(x => x.rank == oldRankMain && x.method == 'dm').length > 0) RankWatchNotify(watchObj.filter(x => x.rank == oldRankMain && x.method == 'dm'))
       }
       if(sObj.notify.status > 0 && sObj.notify.startTime > poHourMain){
         mainMsg.notify = 1
-        if(sObj.notify.method == 'dm') HP.NotifyRankChange(mainMsg)
+        if(sObj.notify.method == 'dm') NotifyRankChange(mainMsg)
       }
       if(oldRankMain > currentMainRank && mainMsg.swap && shard.rules) rankObj.rules.push(mainMsg)
-      HP.SendRankChange(mainMsg)
+      SendRankChange(mainMsg)
       dataChange++
     }
     if (oldRankAlt != currentAltRank) {
-      HP.UpdateRankHistory(pId, shard.alt, currentAltRank)
       oldData.ranks[shard.alt].oldRank = oldRankAlt;
       oldData.ranks[shard.alt].newRank = currentAltRank;
       if(sObj.notify.status > 0 && sObj.notify.altStatus && sObj.notify.startTime > poHourAlt){
         altMsg.notify = 1
-        if(sObj.notify.method == 'dm') HP.NotifyRankChange(altMsg)
+        if(sObj.notify.method == 'dm') NotifyRankChange(altMsg)
       }
-      HP.SendRankChange(altMsg)
+      SendRankChange(altMsg)
       dataChange++
     }
     if(dataChange > 0){
-      if(debugMsg > 0) console.log(oldData.name+' new rank data')
       oldData.TTL = new Date()
       mongo.set('shardRankCache', {_id: pId}, oldData)
       if(oldData.history){
@@ -228,14 +226,14 @@ const SyncPlayer = async(sObj, shardPlayers = [], aObj, players = [], oldData = 
   }
 }
 module.exports = async(shardPlayers, playersFormated, shard, watchObj)=>{
-  const rankObj = {po: {main: [], alt: []}, start: {main: [], alt: []}, shard: [], watch: [], enemyWatch: [], rules: []}
-  const oldPlayers = await mongo.find('shardRankCache', {shardId: shard._id})
+  let rankObj = {po: {main: [], alt: []}, start: {main: [], alt: []}, shard: [], watch: [], enemyWatch: [], rules: []}
+  let oldPlayers = await mongo.find('shardRankCache', {shardId: shard._id})
   if(oldPlayers){
     await eachLimit(playersFormated, MAX_SYNC, async(p)=>{
-      const sObj = shardPlayers.find(x=>x.playerId == p.playerId)
+      let sObj = shardPlayers.find(x=>x.playerId == p.playerId)
       if(sObj?.allyCode){
-        const oldData = oldPlayers.find(x=>x.playerId == p.playerId)
-        const playerData = await SyncPlayer(sObj, shardPlayers, p, playersFormated, oldData, shard, watchObj, rankObj)
+        let oldData = oldPlayers.find(x=>x.playerId == p.playerId)
+        let playerData = await SyncPlayer(sObj, shardPlayers, p, playersFormated, oldData, shard, watchObj, rankObj)
       }
 
     })

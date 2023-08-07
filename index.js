@@ -1,4 +1,5 @@
 'use strict'
-require('app-module-path').addPath(__dirname);
-global.baseDir = __dirname;
+process.on('unhandledRejection', error => {
+  console.log(error)
+});
 require('./src')

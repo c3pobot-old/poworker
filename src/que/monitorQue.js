@@ -1,4 +1,6 @@
 'use strict'
+const log = require('logger')
+const redis = require('helpers/redis')
 const queName = process.env.SHARD_QUE_NAME || 'shardQue'
 const ShardQue = require('./que')
 let count = 0
@@ -13,15 +15,15 @@ const removeJob = async(job)=>{
       //console.log(timeDiff)
       const state = await job.getState()
       if(state === 'failed'){
-        console.log('Killing failed job '+job.id)
+        log.info('Killing failed job '+job.id)
         await job.remove()
       }
       if(state === 'stuck' && +timeDiff > 120 * 1000){
-        console.log('Killing stuck job '+job.id)
+        log.info('Killing stuck job '+job.id)
         await job.remove()
       }
       if(state === 'completed' && timeDiff > 20 * 1000){
-        console.log('Removing completed job '+job.id)
+        log.info('Removing completed job '+job.id)
         await job.remove()
       }
     }
@@ -36,8 +38,8 @@ const checkJobs = async(cmdQue)=>{
       for(let i in jobs) await removeJob(jobs[i])
     }
   }catch(e){
-    console.error('Error with checkJobs...')
-    console.error(e);
+    log.error('Error with checkJobs...')
+    log.error(e);
   }
 }
 const forceClear = async()=>{
@@ -49,14 +51,14 @@ const forceClear = async()=>{
         if(!jobs[i].includes('-') || jobs[i].includes('stalled')) continue
         let job = await redis.hget(jobs[i])
         if(job?.failedReason){
-          console.log('Force deleting failed job ...'+jobs[i])
+          log.log('Force deleting failed job ...'+jobs[i])
           await redis.del(jobs[i])
         }
       }
     }
   }catch(e){
-    console.error('Error with forceClear...')
-    console.error(e);
+    log.error('Error with forceClear...')
+    log.error(e);
   }
 }
 const Sync = async() =>{
@@ -68,7 +70,7 @@ const Sync = async() =>{
 
     setTimeout(Sync, 5000)
   }catch(e){
-    console.error(e)
+    log.error(e)
     setTimeout(Sync, 5000)
   }
 }

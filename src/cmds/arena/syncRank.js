@@ -1,9 +1,12 @@
 'use strict'
+const log = require('logger')
+const mongo = require('mongoapiclient')
+const { GetPOHour, NotifyPO, NotifyRankChange, NotifyStart, SendPayoutMsg, SendRankChange, SendStartMsg } = require('helpers')
 module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null)=>{
   try{
     let dataChange = 0
-    const currentShipRank = (obj.arena.ship.rank || 0);
-    const currentCharRank = (obj.arena.char.rank || 0);
+    let currentShipRank = (obj.arena.ship.rank || 0);
+    let currentCharRank = (obj.arena.char.rank || 0);
     if(!oldData) dataChange++
     if(!oldData) oldData  = {
        char: {
@@ -47,10 +50,10 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
       oldData.allyCode = +obj.allyCode
       dataChange++
     }
-    const charPOhour = HP.GetPOHour(obj.poOffSet, 'char');
-    const shipPOhour = HP.GetPOHour(obj.poOffSet, 'ship');
-    const oldCharRank = oldData.char.currentRank
-    const oldShipRank = oldData.ship.currentRank
+    let charPOhour = GetPOHour(obj.poOffSet, 'char');
+    let shipPOhour = GetPOHour(obj.poOffSet, 'ship');
+    let oldCharRank = oldData.char.currentRank
+    let oldShipRank = oldData.ship.currentRank
     let charObj, shipObj
     if(pObj){
       charObj = {
@@ -85,24 +88,22 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
       }
     }
     if (charPOhour == 23 && oldData.notify.charPO == 0) {
-      HP.UpdatePayHistory(obj.playerId, 'char', currentCharRank)
       oldData.notify.charPO = 1
       dataChange++
       if(pObj && pObj.notify.status && pObj.notify.poNotify){
         charObj.poNotify = 1
-        if(pObj.notify.method != 'log') HP.NotifyPO(charObj)
+        if(pObj.notify.method != 'log') NotifyPO(charObj)
       }
-      if(chId) HP.SendPayoutMsg(chId, [charObj], {sId: sId})
+      if(chId) SendPayoutMsg(chId, [charObj], {sId: sId})
     }
     if (shipPOhour == 23 && oldData.notify.shipPO == 0) {
-      HP.UpdatePayHistory(obj.playerId, 'ship', currentShipRank)
       oldData.notify.shipPO = 1
       dataChange++
       if(pObj && pObj.notify.status && pObj.notify.poNotify){
         shipObj.poNotify = 1
-        if(pObj.notify.method != 'log') HP.NotifyPO(shipObj)
+        if(pObj.notify.method != 'log') NotifyPO(shipObj)
       }
-      if(chId) HP.SendPayoutMsg(chId, [shipObj], {sId: sId})
+      if(chId) SendPayoutMsg(chId, [shipObj], {sId: sId})
     }
     if (charPOhour != 23 && oldData.notify.charPO == 1) {
       oldData.notify.charPO = 0
@@ -118,9 +119,9 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
         dataChange++
         if(pObj.notify.status && (!pObj.type || pObj.type === 1)){
           if(pObj.notify.method != 'log'){
-             HP.NotifyStart(charObj);
+             NotifyStart(charObj);
           }else{
-            if(chId) HP.SendStartMsg(chId, [charObj], {sId: sId});
+            if(chId) SendStartMsg(chId, [charObj], {sId: sId});
           }
 
         }
@@ -130,9 +131,9 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
         dataChange++
         if(pObj.notify.status  && (!pObj.type || pObj.type === 2)){
           if(pObj.notify.method != 'log'){
-            HP.NotifyStart(shipObj)
+            NotifyStart(shipObj)
           }else{
-            if(chId) HP.SendStartMsg(chId, [shipObj], {sId: sId});
+            if(chId) SendStartMsg(chId, [shipObj], {sId: sId});
           }
         }
       }
@@ -147,30 +148,28 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
       }
     }
     if (currentCharRank > 0 && currentCharRank != oldCharRank) {
-      HP.UpdateRankHistory(obj.playerId, 'char', currentCharRank)
       oldData.char.currentRank = currentCharRank
       dataChange++
       if(pObj && pObj.notify.status && pObj.notify.timeBeforePO > charPOhour){
         if(debugMsg) console.log('Send Char Rank Change for ' + obj.name)
         if(!pObj.type || pObj.type === 1){
           charObj.notify = 1
-          if(pObj.notify.method != 'log') HP.NotifyRankChange(charObj)
+          if(pObj.notify.method != 'log') NotifyRankChange(charObj)
         }
       }
-      if(chId) HP.SendRankChange(charObj)
+      if(chId) SendRankChange(charObj)
     }
     if (currentShipRank > 0 && currentShipRank != oldShipRank) {
-      HP.UpdateRankHistory(obj.playerId, 'ship', currentShipRank);
       oldData.ship.currentRank = currentShipRank
       dataChange++
       if(pObj && pObj.notify.status && pObj.notify.timeBeforePO > shipPOhour){
         if(debugMsg) console.log('Send Ship Rank Change for ' + obj.name)
         if(!pObj.type || pObj.type === 2) {
           shipObj.notify = 1
-          if(pObj.notify.method != 'log') HP.NotifyRankChange(shipObj)
+          if(pObj.notify.method != 'log') NotifyRankChange(shipObj)
         }
       }
-      if(chId) HP.SendRankChange(shipObj)
+      if(chId) SendRankChange(shipObj)
     }
     if(dataChange > 0){
       if(debugMsg > 0) console.log(oldData.name +' has new player rank data.')
@@ -182,6 +181,6 @@ module.exports = async(obj, oldData = null, pObj = null, chId = null, sId = null
       }
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

@@ -1,41 +1,39 @@
 'use strict'
-require('./globals')
-require('./expressServer')
-let Ques = require('./ques')
-const InitRedis = async()=>{
+const log = require('logger')
+let logLevel = process.env.LOG_LEVEL || log.Level.INFO;
+log.setLevel(logLevel);
+const mongo = require('mongoapiclient')
+const swgohClient = require('./swgohClient')
+const { redisStatus } = require('./helpers/redis')
+const { botSettings } = require('./helpers/botSettings')
+const { configMaps } = require('./helpers/configMaps')
+
+let Ques = require('./que')
+const CheckRedis = async()=>{
   try{
-    await redis.init()
-    const redisStatus = await redis.ping()
-    if(redisStatus == 'PONG'){
-      console.log('redis connection successful...')
-      StartServices()
+    let status = redisStatus()
+    if(status){
+      CheckAPIReady()
     }else{
-      console.log('redis connection error. Will try again in 5 seconds...')
-      setTimeout(InitRedis, 5000)
+      setTimeout(CheckRedis, 5000)
     }
   }catch(e){
-    console.error('redis connection error. Will try again in 5 seconds...')
-    setTimeout(InitRedis, 5000)
-  }
-}
-const StartServices = async()=>{
-  try{
-    await UpdateBotSettings()
-    await UpdateUnits()
-    await CheckAPIReady()
-    StartQue()
-  }catch(e){
-    console.error(e);
-    setTimeout(StartServices, 5000)
+    log.error(e);
+    setTimeout(CheckRedis, 5000)
   }
 }
 const CheckAPIReady = async()=>{
-  const obj = await Client.metadata()
-  if(obj?.latestGamedataVersion){
-    console.log('API is ready ..')
-    apiReady = 1
-  }else{
-    console.log('API is not ready. Will try again in 5 seconds')
+  try{
+    let obj = await swgohClient.metadata()
+    if(obj?.latestGamedataVersion){
+      log.info('API is ready ..')
+      StartQue()
+    }else{
+      log.info('API is not ready. Will try again in 5 seconds')
+      setTimeout(()=>CheckAPIReady(), 5000)
+    }
+  }catch(e){
+    log.error(e)
     setTimeout(()=>CheckAPIReady(), 5000)
   }
 }
@@ -43,28 +41,8 @@ const StartQue = ()=>{
   try{
     Ques.start()
   }catch(e){
-    console.error(e);
+    log.error(e);
     setTimeout(StartQue, 5000)
   }
 }
-const UpdateBotSettings = async()=>{
-  try{
-    const obj = (await mongo.find('botSettings', {_id: "1"}))[0]
-    if(obj) botSettings = obj
-    setTimeout(UpdateBotSettings, 60000)
-  }catch(e){
-    setTimeout(UpdateBotSettings, 5000)
-    console.error(e)
-  }
-}
-const UpdateUnits = async()=>{
-  try{
-    await HP.UpdateUnitsList()
-    setTimeout(UpdateUnits, 3600000)
-  }catch(e){
-    console.error(e);
-    setTimeout(UpdateUnits, 5000)
-  }
-}
-
-InitRedis()
+CheckRedis()

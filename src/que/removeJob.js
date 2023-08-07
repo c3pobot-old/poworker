@@ -1,4 +1,6 @@
 'use strict'
+const log = require('logger')
+const redis = require('helpers/redis')
 const queName = process.env.CMD_QUE_NAME || 'shardQue'
 module.exports = async(jobId)=>{
   try{
@@ -7,6 +9,6 @@ module.exports = async(jobId)=>{
       for(let i in jobs) await redis.del(jobs[i])
     }
   }catch(e){
-    console.error(e);
+    log.error(e);
   }
 }

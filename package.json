@@ -20,19 +20,14 @@
   },
   "homepage": "https://gitlab.com/c3po-shard/poworker#readme",
   "dependencies": {
-    "app-module-path": "^2.2.0",
     "async": "^3.2.0",
     "botrequest": "github:c3pobot/botrequest",
     "bottleneck": "^2.19.5",
-    "discordhelper": "github:c3pobot-old/discordhelper",
-    "discordmsg": "github:c3pobot-old/discordmsg",
-    "express": "^4.17.1",
+    "bull": "^4.10.4",
     "json-array-sorter": "0.0.5",
+    "logger": "github:c3pobot/logger",
     "mongoapiclient": "github:c3pobot/mongoapiclient",
     "node-fetch": "^2.6.7",
-    "payouthelper": "github:c3pobot/payouthelper",
-    "quewrapper": "github:c3pobot-old/quewrapper",
-    "rediswrapper": "github:c3pobot/rediswrapper",
-    "swgohhelper": "github:c3pobot-old/swgohhelper"
+    "rediswrapper": "github:c3pobot/rediswrapper"
   }
 }

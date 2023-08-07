@@ -1,9 +1,12 @@
 'use strict'
+const log = require('logger')
+const mongo = require('mongoapiclient')
+const { DeepCopy, DiscordMsg, GetRanks, GetShardName } = require('helpers')
 module.exports = async(shardId, shardCache)=>{
   try{
     const shard = (await mongo.find('payoutServers', {_id: shardId}))[0]
     if(shard && shard.rankChannel){
-      const rankMsg = await HP.GetRanks(shard, shardCache, true)
+      const rankMsg = await GetRanks(shard, shardCache, true)
       if(rankMsg && rankMsg.length > 0){
         if(!shard.rankMsgs){
           const rankMsgInfo = (await mongo.find('shardMessages', {_id: shard.sId+'-'+shard.rankChannel}))[0]
@@ -26,7 +29,7 @@ module.exports = async(shardId, shardCache)=>{
           let count = 0
           for(let i in rankMsg){
             if(i == 0){
-              embedMsg.title = HP.GetShardName(shard)+' Arena Ranks'
+              embedMsg.title = GetShardName(shard)+' Arena Ranks'
               embedMsg.description = (shard.message == 'default' ? defaultMsg:shard.message.replace('<br>', '\n'))
             }
             embedMsg.fields.push(rankMsg[i])
@@ -44,14 +47,11 @@ module.exports = async(shardId, shardCache)=>{
               count = 0
             }
           }
-          //MSG.RESTHandler('/channels/'+shard.rankChannel+'/messages/'+shard.rankMsgs[0], 'PATCH', JSON.stringify({embeds: embeds}))
-          //MSG.EditMsg({chId: shard.rankChannel, msgId: shard.rankMsgs[0]}, {embeds: embeds})
-          //MSG.RESTHandler('/channels/'+shard.rankChannel+'/messages/'+shard.rankMsgs[0], 'PATCH', JSON.stringify({embeds: embeds}))
-          HP.DiscordMsg({sId: shard.sId}, {method: 'editMsg', chId: shard.rankChannel, msgId: shard.rankMsgs[0], msg: {embeds: embeds}})
+          DiscordMsg({sId: shard.sId}, {method: 'editMsg', chId: shard.rankChannel, msgId: shard.rankMsgs[0], msg: {embeds: embeds}})
         }
       }
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

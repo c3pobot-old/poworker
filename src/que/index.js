@@ -1,5 +1,6 @@
 'use strict'
-//const ProcessLocalQue = require('./processLocalQue')
+const log = require('logger')
+
 const updateQue = require('./updateQue')
 const monitorQue = require('./monitorQue')
 const ShardQue = require('./que')
@@ -9,31 +10,30 @@ const isOdd = (num)=>{
 }
 const StartQues = async()=>{
   try{
-    if(apiReady && CmdMap){
-      //await ProcessLocalQue()
-      ShardQue.start();
-      MonitorQue()
-    }else{
-      setTimeout(StartQues, 5000)
-    }
+    ShardQue.start();
+    MonitorQue()
   }catch(e){
-    console.error(e);
+    log.error(e);
     setTimeout(StartQues, 5000)
   }
 }
 const MonitorQue = ()=>{
   try{
-    let num = POD_NAME.slice(-1)
+    let num = POD_NAME.slice(-1), array = POD_NAME.split('-')
+    if(array?.length > 1){
+      num = +array.pop()
+    }
     if(!isOdd(num)){
-      console.log('Starting que update...')
+      log.info('Starting que update...')
       updateQue()
     }
     if(isOdd(num)){
-      console.log('Starting que monitor..')
+      log.info('Starting que monitor..')
       monitorQue()
     }
+    if(num === 0) ShardQue.createListeners()
   }catch(e){
-    console.error(e);
+    log.error(e);
   }
 }
 module.exports.start = StartQues

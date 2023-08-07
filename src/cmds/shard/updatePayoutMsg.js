@@ -1,9 +1,12 @@
 'use strict'
-module.exports = async(shardId, shardCache)=>{
+const log = require('logger')
+const mongo = require('mongoapiclient')
+const { DeepCopy, DiscordMsg, GetPayouts, GetShardName } = require('helpers')
+module.exports = async(shardId, shardCache = [])=>{
   try{
     const shard = (await mongo.find('payoutServers', {_id: shardId}))[0]
     if(shard && shard.payChannel){
-      const payMsg = await HP.GetPayouts(shard, shardCache, true)
+      const payMsg = await GetPayouts(shard, shardCache, true)
       if(payMsg && payMsg.length > 0){
         if(!shard.payMsgs){
           const payMsgInfo = (await mongo.find('shardMessages', {_id: shard.sId+'-'+shard.payChannel}))[0]
@@ -26,7 +29,7 @@ module.exports = async(shardId, shardCache)=>{
           let count = 0
           for(let i in payMsg){
             if(i == 0){
-              embedMsg.title = HP.GetShardName(shard)+' Arena Payouts'
+              embedMsg.title = GetShardName(shard)+' Arena Payouts'
               embedMsg.description = (shard.message == 'default' ? defaultMsg:shard.message.replace('<br>', '\n'))
             }
             embedMsg.fields.push(payMsg[i])
@@ -44,19 +47,11 @@ module.exports = async(shardId, shardCache)=>{
               count = 0
             }
           }
-          //MSG.RESTHandler('/channels/'+shard.payChannel+'/messages/'+shard.payMsgs[0], 'PATCH', JSON.stringify({embeds: embeds}))
-          //MSG.EditMsg({chId: shard.payChannel, msgId: shard.payMsgs[0]}, {embeds: embeds})
-          //MSG.RESTHandler('/channels/'+shard.payChannel+'/messages/'+shard.payMsgs[0], 'PATCH', JSON.stringify({embeds: embeds}))
-          HP.DiscordMsg({sId: shard.sId}, {method: 'editMsg', chId: shard.payChannel, msgId: shard.payMsgs[0], msg: {embeds: embeds}})
-          /*
-          for(let i in embeds){
-            if(shard.payMsgs[i]) MSG.EditMsg({chId: shard.payChannel, msgId: shard.payMsgs[i]}, {embeds: [embeds[i]]})
-          }
-          */
+          DiscordMsg({sId: shard.sId}, {method: 'editMsg', chId: shard.payChannel, msgId: shard.payMsgs[0], msg: {embeds: embeds}})
         }
       }
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

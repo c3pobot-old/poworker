@@ -1,13 +1,17 @@
 'use strict'
-const GetDiscordId = require('./getDiscordId')
-module.exports = async(obj)=>{
+const log = require('logger')
+const discordMsg = require('./discordMsg')
+const getDiscordId = require('./getDiscordId')
+const getShardName = require('./getShardName')
+
+module.exports = async(obj = {})=>{
   try{
     if(obj.rank > obj.oldRank || obj.climb){
-      const discordId = await GetDiscordId(obj)
+      const discordId = await getDiscordId(obj)
       if(discordId){
-        const embedMsg = {
+        let embedMsg = {
           color: obj.rank > obj.oldRank ? 15158332 : 3066993,
-          description: HP.GetShardName(obj)+' Arena Logs\n'+(obj.emoji ? obj.emoji+' ':'')+'**'+obj.name+'** '
+          description: getShardName(obj)+' Arena Logs\n'+(obj.emoji ? obj.emoji+' ':'')+'**'+obj.name+'** '
         }
         embedMsg.description += (obj.rank > obj.oldRank ? 'dropped':'climbed')+' from **'+obj.oldRank+'** to **'+obj.rank+'**.\n'
         if(obj.swap){
@@ -15,10 +19,16 @@ module.exports = async(obj)=>{
         }
 
         //MSG.SendDM(discordId, {embed: embedMsg})
-        HP.DiscordMsg({shardId: 0}, {method: 'sendDM', dId: discordId, msg: {embeds: [embedMsg]}})
+        let opts = {}
+        if(obj.sId){
+          opts.sId = obj.sId
+        }else{
+          opts.shardId = 0
+        }
+        discordMsg(opts, {method: 'sendDM', dId: discordId, msg: {embeds: [embedMsg]}})
       }
     }
   }catch(e){
-    console.error(obj)
+    log.error(obj)
   }
 }

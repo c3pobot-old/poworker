@@ -1,12 +1,16 @@
 'use strict'
+const log = require('logger')
+const discordMsg = require('./discordMsg')
+const getShardName = require('./getShardName')
+
 module.exports = async(watch, obj = [], shard = {})=>{
   try{
     if(obj.length > 0){
-      const watchObj = {}
-      const shardName = HP.GetShardName(obj[0])
+      let watchObj = {}
+      let shardName = getShardName(obj[0])
       for(let i in obj){
         if(watch[obj[i].allyCode] && obj[i].poHour >= 0){
-          const tempWatch = watch[obj[i].allyCode]
+          let tempWatch = watch[obj[i].allyCode]
           if(tempWatch.startTime > obj[i].poHour || (tempWatch.startRank && tempWatch.startRank > obj[i].rank)){
             if(tempWatch.moveDir == 'both' || (tempWatch.moveDir == 'up' && obj[i].oldRank > obj[i].rank) || (tempWatch.moveDir == 'down' && obj[i].oldRank < obj[i].rank)){
               if(!watchObj[tempWatch.chId]) watchObj[tempWatch.chId] = ''
@@ -16,11 +20,10 @@ module.exports = async(watch, obj = [], shard = {})=>{
         }
       }
       for(let i in watchObj){
-        //MSG.SendMsg({chId: i}, {content: watchObj[i]})
-        HP.DiscordMsg({sId: shard.sId}, {method: 'sendMsg', chId: i, msg: {content: watchObj[i]}})
+        discordMsg({sId: shard.sId}, {method: 'sendMsg', chId: i, msg: {content: watchObj[i]}})
       }
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

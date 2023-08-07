@@ -1,5 +1,5 @@
 module.exports = async(oldData, sObj, shard, type, poHour)=>{
-  const tempObj = {
+  let tempObj = {
     name: oldData.name,
     allyCode: +oldData.allyCode,
     emoji: sObj.emoji,

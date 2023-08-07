@@ -1,10 +1,15 @@
 'use strict'
-const GetDiscordId = require('./getDiscordId')
+const log = require('logger')
+const mongo = require('mongoapiclient')
+const discordMsg = require('./discordMsg')
+const getDiscordId = require('./getDiscordId')
+const getShardName = require('./getShardName')
+
 module.exports = async(obj)=>{
   try{
     if(obj.chId){
-      let content, shardName = HP.GetShardName(obj)
-      const embedMsg = {
+      let content, shardName = getShardName(obj)
+      let embedMsg = {
         color: obj.rank > obj.oldRank ? 15158332 : 3066993,
         description: shardName+' Arena Logs\n'+(obj.emoji ? obj.emoji+' ':'')+'**'+obj.name+'** '
       }
@@ -13,7 +18,7 @@ module.exports = async(obj)=>{
         embedMsg.description += (obj.rank > obj.oldRank ? 'Bumped by':'Dropped')+' '+(obj.swap.emoji ? obj.swap.emoji+' ':'')+'**'+obj.swap.name+'**'
       }
       if(obj.notify && obj.method == 'log' && (obj.rank > obj.oldRank || obj.climb)){
-        const discordId = await GetDiscordId(obj)
+        let discordId = await getDiscordId(obj)
         if(discordId){
           if(!content) content = ''
           content += '<@'+discordId+'> '+(obj.rank > obj.oldRank ? 'your rank dropped':'climbed')+' in '+shardName+' arena from **'+obj.oldRank+'** to **'+obj.rank+'**\n'
@@ -48,10 +53,9 @@ module.exports = async(obj)=>{
           }
         }
       }
-      //MSG.SendMsg({chId: obj.chId}, {content: content, embed: embedMsg})
-      HP.DiscordMsg({ sId: obj.sId }, {method: 'sendMsg', chId: obj.chId, msg: {content: content, embeds: [embedMsg]}})
+      discordMsg({ sId: obj.sId }, {method: 'sendMsg', chId: obj.chId, msg: {content: content, embeds: [embedMsg]}})
     }
   }catch(e){
-    console.error(e)
+    log.error(e)
   }
 }

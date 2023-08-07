@@ -1,4 +1,6 @@
 'use strict'
+const log = require('logger')
+const mongo = require('mongoapiclient')
 const ShardQue = require('./que')
 
 const syncShard = async()=>{
@@ -10,7 +12,7 @@ const syncShard = async()=>{
       if(shards[i].status) await ShardQue.newJob({jobType: 'shard', data: {shardId: shards[i]._id}}, opts)
     }
   }catch(e){
-    console.error(e);
+    log.error(e);
   }
 }
 const syncArena = async()=>{
@@ -24,7 +26,7 @@ const syncArena = async()=>{
       }
     }
   }catch(e){
-    console.error(e);
+    log.error(e);
   }
 }
 const Sync = async()=>{
@@ -33,7 +35,7 @@ const Sync = async()=>{
     await syncArena()
     setTimeout(Sync, 5000)
   }catch(e){
-    console.error(e);
+    log.error(e);
     setTimeout(Sync, 5000)
   }
 }
